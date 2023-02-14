@@ -1,0 +1,26 @@
+<%- include('./iniciar-sesion')-%>
+<body>
+    <div class="container mt-3">
+        <div class="jumbotron">
+            <h1 style="color:black mt-3;"></h1>
+            <h2 style="color:black mt-3;">Iniciar Sesión</h2>
+
+            <form action="/login" method="post">
+
+                <div class="form-group">
+                    <label for="exampleInputEmail1" class="form-label">Usuario:</label>
+                    <input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" name="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="exampleInputPassword1" class="form-label">Contraseña</label>
+                    <input type="password" class="form-control" id="exampleInputPassword1" name="password">
+                </div>
+
+                <button class="btn btn-success mt-3 mb-5" >Enviar</button>
+            </form>           
+        </div> 
+    </div>
+</body>
+
+<%- include('./pie')-%>
