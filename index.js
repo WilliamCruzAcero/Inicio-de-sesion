@@ -3,7 +3,6 @@ const mongoose = require('mongoose')
 const express = require('express')
 const session = require('express-session')
 const {StatusCodes} = require('http-status-codes')
-const cookieParser = require('cookie-parser')
 const MongoStore = require('connect-mongo')
 
 
@@ -27,6 +26,11 @@ const getUserModel = () => {
    return mongoose.model('usuarios', usuarioSchema)
 }
 
+function isAuthenticated (req, res, next) {
+    if (req.session.name) next()
+    else res.redirect('/');
+  }
+
 const main = async () => {
     
     let usuarios = []
@@ -36,7 +40,6 @@ const main = async () => {
     const UsuarioModel = getUserModel();
     app.use(express.urlencoded({extended: false}));
     app.use(express.json())
-    app.use(cookieParser())
     app.use(session({
         secret: 'secret-key',
         resave: false,
@@ -54,14 +57,27 @@ const main = async () => {
 
         })
     }));
+
+
     app.set('views', './views');
     app.set('view engine', 'ejs');
 
     app.get('/', (req, res) => {
-        res.render('fomulario-inicio-sesion');
+        res.render('formulario-inicio-sesion');
+    });
+
+    app.get('/productos', isAuthenticated, (req, res) => {
+        const productos = [
+            {
+                nombre: "tomate",
+                precio: 30,
+                imagen: "https://www.quironsalud.es/idcsalud-client/cm/images?locale=es_ES&idMmedia=2299323"
+            }
+        ]
+        res.render('formulario-productos', {productos});
     });
     
-    app.post('/user', async (req, res) => {
+    app.post('/api/user', async (req, res) => {
     
         const {username, password, name} = req.body;
     
@@ -117,7 +133,7 @@ const main = async () => {
         } 
 
         req.session.name = user.name
-        res.json({});
+        res.redirect('/productos')
 
     });
     
