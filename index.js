@@ -18,12 +18,28 @@ const conectDB = async () => {
 }
 
 const getUserModel = () => {
+    
     const usuarioSchema = new mongoose.Schema({
+        
         username: String,
         password: String,
-        name: String
-    })
-   return mongoose.model('usuarios', usuarioSchema)
+        name: String,
+        productos: [{
+            nombre: String, 
+            precio: Number,
+            imagen: String,
+            cantidad: Number
+        }]
+      });
+      
+      return mongoose.model('usuarios', usuarioSchema);
+       
+}
+
+function verificarCampoRequerido(valor, mensaje){
+    if (!valor) {
+        throw new Error()
+    }
 }
 
 function isAuthenticated (req, res, next) {
@@ -33,11 +49,11 @@ function isAuthenticated (req, res, next) {
 
 const main = async () => {
     
-    let usuarios = []
     const app = express();
 
     await conectDB()
     const UsuarioModel = getUserModel();
+    /* const ProductoModel = getProductModel(); */
     app.use(express.urlencoded({extended: false}));
     app.use(express.json())
     app.use(session({
@@ -57,8 +73,6 @@ const main = async () => {
 
         })
     }));
-
-
     app.set('views', './views');
     app.set('view engine', 'ejs');
 
@@ -66,17 +80,6 @@ const main = async () => {
         res.render('formulario-inicio-sesion');
     });
 
-    app.get('/productos', isAuthenticated, (req, res) => {
-        const productos = [
-            {
-                nombre: "tomate",
-                precio: 30,
-                imagen: "https://www.quironsalud.es/idcsalud-client/cm/images?locale=es_ES&idMmedia=2299323"
-            }
-        ]
-        res.render('formulario-productos', {productos});
-    });
-    
     app.post('/api/user', async (req, res) => {
     
         const {username, password, name} = req.body;
@@ -93,7 +96,7 @@ const main = async () => {
             return res.status(StatusCodes.BAD_REQUEST).send('El nombre es requerido')
         }
     
-        const usuarioExistente = await UsuarioModel.findOne({username});
+       const usuarioExistente = await UsuarioModel.findOne({username});
 
         if ( usuarioExistente?.username ) {
             return res.status(StatusCodes.BAD_REQUEST).send('El nombre de usuario no está disponible');
@@ -102,12 +105,12 @@ const main = async () => {
         const nuevoUsuario = new UsuarioModel({
             username,
             password,
-            name
+            name,
+            productos: []
         })
-
+ 
         await nuevoUsuario.save();
         
-        console.log(`Usuario ${username} registrado con exito`);    
         res.send(`Usuario ${username} registrado con exito`) 
     });
 
@@ -133,27 +136,88 @@ const main = async () => {
         } 
 
         req.session.name = user.name
+        req.session.username = user.username
         res.redirect('/productos')
 
     });
-    
-    
-    // Definir la ruta "olvidar"
-    
-    /* app.get('/olvidar', (req, res) => {
+
+    app.post('/logout', (req, res) => {
         req.session.destroy(error => {
             if(error){
                 res.send({error: error.message});
                 return;
             }
     
-            res.send('¡Hasta luego!')
+            res.redirect('/')
         });
-    }); */
     
-    // configurar servidor
+    });
     
-    
+    app.get('/productos', isAuthenticated, async(req, res) => {
+
+        const {username, name} = req.session
+
+        const user = await UsuarioModel.findOne({username});
+        
+        res.render('formulario-productos', {
+            productos: user.productos,
+            usuario: {
+                nombre: name
+            } 
+        });
+    });
+
+    app.post('/productos', isAuthenticated, async (req, res) => {
+        const {username} = req.session;
+        const {nombre, precio, imagen, cantidad} = req.body;
+
+        let err = 'Los siguientes campos son requeridos: '
+        const camposFaltantes = []
+
+        try {
+            verificarCampoRequerido(nombre);
+        } catch (error) {
+            camposFaltantes.push('Nombre')
+        }
+
+        try {
+            verificarCampoRequerido(precio);
+        } catch (error) {
+            camposFaltantes.push('Precio')
+        }
+
+        try {
+            verificarCampoRequerido(imagen);
+        } catch (error) {
+            camposFaltantes.push('Imagen')
+        }
+
+        try {
+            verificarCampoRequerido(cantidad);            
+        } catch (error) {
+            camposFaltantes.push('Cantidad')
+        }
+        
+        if(camposFaltantes.length) {
+            err = err + camposFaltantes.join(', ');
+            return res.status(StatusCodes.BAD_REQUEST).send(err);
+        }
+
+        const user = await UsuarioModel.findOne({username});
+
+        user.productos.push({
+            nombre,
+            precio,
+            imagen,
+            cantidad
+        })
+
+        await user.save()
+
+        res.redirect('/productos')
+
+    })
+
     const port = 8080;
     app.listen(port, () => {
         console.log(`Servidor ejecutandose en el puerto ${port}`);

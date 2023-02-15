@@ -5,12 +5,14 @@
                 <th>Nombre</th>
                 <th>Precio</th>
                 <th>Imagen</th>
+                <th>cantidad</th>
             </tr>
             <%productos.forEach(function(producto) { %>
                 <tr>
                     <td><%=producto.nombre%></td>
                     <td><%=producto.precio%></td>
                     <td><%=producto.imagen%></td>
+                    <td><%=producto.cantidad%></td>
                 </tr>
                 <%});%>    
         </table>  
