@@ -4,13 +4,18 @@
         <div class="container mt-3">
             <div class="jumbotron">
                 <h1 style="color:black mt-3;"></h1>
-                <h2 style="color:black mt-3;">Iniciar sesión</h2>
+                <h2 style="color:black mt-3;">Registro de usuario</h2>
 
-                <form action="/login" method="post">
+                <form action="/user" method="post">
+
+                    <div class="form-group">
+                        <label for="name1" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="name1" name="name" required>
+                    </div>
 
                     <div class="form-group">
                         <label for="exampleInputEmail1" class="form-label">Usuario:</label>
-                        <input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
+                        <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
                             name="username" required>
                     </div>
 
@@ -19,11 +24,15 @@
                         <input type="password" class="form-control" id="exampleInputPassword1" name="password" required>
                     </div>
 
-                    <button class="btn btn-primary mt-3 mb-5">Enviar</button>
+                    
+
+                    <button class="btn btn-primary mt-3 mb-5">Registrar</button>
+
+                    
                 </form>
-                <form action="/registrarUsuario">
-                    <button class="btn  btn-outline-secondary mt-3 mb-5">Registrar</button>
-                </form>
+                <form action="/">
+                    <button class="btn btn-outline-secondary mt-3 mb-5">Iniciar Sesión</button>
+                </form> 
             </div>
         </div>
     </body>
