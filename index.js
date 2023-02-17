@@ -80,10 +80,6 @@ const main = async () => {
         res.render('formulario-inicio-sesion');
     });
 
-    app.get('/salir', (req, res) => {
-        res.render('mensaje', {mensaje: '¡Hasta luego!'})
-    })
-    
     app.get('/registrarUsuario', (req, res) => {
         res.render('formulario-registrar-usuario')
     })
@@ -178,12 +174,15 @@ const main = async () => {
     });
 
     app.post('/logout', (req, res) => {
+
+        const {name} = req.session
+
         req.session.destroy(error => {
             if (error) {
                 res.send({ error: error.message });
                 return;
             }
-            res.redirect('/salir')
+            res.render('mensaje', {mensaje: `¡Hasta luego ${name}!`})
         });
 
     });
@@ -197,7 +196,8 @@ const main = async () => {
         res.render('formulario-productos', {
             productos: user.productos,
             usuario: {
-                nombre: name
+                nombre: name,
+                username
             }
         });
     });
