@@ -1,10 +1,9 @@
 // importar dependencias
 const mongoose = require('mongoose')
 const express = require('express')
-const session = require('express-session')
 const { StatusCodes } = require('http-status-codes')
-const MongoStore = require('connect-mongo')
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
 
 const conectDB = async () => {
@@ -42,10 +41,25 @@ function verificarCampoRequerido(valor, mensaje) {
         throw new Error()
     }
 }
+const secret = 'my_secret_too_secret';
 
-function isAuthenticated(req, res, next) {
-    if (req.session.name) next()
-    else res.redirect('/');
+function verifyToken(req, res, next) {
+    const token = req.headers.authorization;
+    
+
+    if (!token) {
+        res.status(StatusCodes.UNAUTHORIZED).send('No se proporcionó un token de autenticación');
+        return;
+    }
+
+    try {
+        const decoded = jwt.verify(token, secret);
+        req.secret = decoded;
+        next();
+    } catch (error) {
+        res.status(StatusCodes.UNAUTHORIZED).send('Token de autenticación no válido');
+    }
+
 }
 
 const main = async () => {
@@ -54,26 +68,9 @@ const main = async () => {
 
     await conectDB()
     const UsuarioModel = getUserModel();
-    app.use(express.urlencoded({ extended: false }));
+    app.use(express.urlencoded({ extended: true}));
     app.use(express.json())
-    app.use(session({
-        secret: 'secret-key',
-        resave: false,
-        rolling: true,
-        saveUninitialized: false,
-        cookie: {
-            maxAge: 1 * 60 * 1000
-        },
-        store: new MongoStore({
-            client: mongoose.connection.getClient(),
-            dbName: "ecommerce",
-            collectionName: "sessions",
-            stringify: false,
-            autoRemove: 'interval',
-            autoRemoveInterval: 1 //minutes
 
-        })
-    }));
     app.set('views', './views');
     app.set('view engine', 'ejs');
 
@@ -97,7 +94,7 @@ const main = async () => {
         }
 
         var isEmailRegExp = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
-        if(!isEmailRegExp.test(username)) {
+        if (!isEmailRegExp.test(username)) {
             return res.render('error', {
                 mensaje: 'El nombre de usuario debe ser un correo electrónico',
                 redirigir: '/registrarUsuario'
@@ -139,7 +136,7 @@ const main = async () => {
 
         await nuevoUsuario.save();
 
-        res.render('mensaje', {mensaje: `Usuario ${username} registrado con exito`})
+        res.render('mensaje', { mensaje: `Usuario ${username} registrado con exito` })
     });
 
     app.post('/login', async (req, res) => {
@@ -150,18 +147,18 @@ const main = async () => {
             if (!username) {
                 throw new Error('El nombre de usuario es requerido')
             }
-    
+
             if (!password) {
                 throw new Error('La contraseña es requerida')
             }
-    
-            user = await UsuarioModel.findOne({ username });            
-    
+
+            user = await UsuarioModel.findOne({ username });
+
             if (!user?.username) {
                 throw new Error('El usuario no esta registrado');
             }
-    
-            const hashedPassword = user.password;            
+
+            const hashedPassword = user.password;
             const isCorrectPassword = await bcrypt.compare(password, hashedPassword)
 
             if (!isCorrectPassword) {
@@ -174,29 +171,29 @@ const main = async () => {
                 redirigir: '/'
             })
         }
-        
-        req.session.name = user.name
-        req.session.username = user.username
-        res.redirect('/productos')
-    });
 
-    app.post('/logout', (req, res) => {
+        const tokenBody = {
+            username: user.username,
+            name: user.name            
+        }
 
-        const {name} = req.session
+        const token = jwt.sign(tokenBody, secret, { expiresIn: '1h' });
 
-        req.session.destroy(error => {
-            if (error) {
-                res.send({ error: error.message });
-                return;
-            }
-            res.render('mensaje', {mensaje: `¡Hasta luego ${name}!`})
-        });
+        res.json({ token });
 
     });
 
-    app.get('/productos', isAuthenticated, async (req, res) => {
+    app.post('/logout', verifyToken , (req, res) => {
 
-        const { username, name } = req.session
+        const { name } = req.secret
+
+        res.render('mensaje', { mensaje: `¡Hasta luego ${name}!` })
+    
+    });
+
+    app.get('/productos', verifyToken, async (req, res) => {
+
+        const { username, name } = req.secret
 
         const user = await UsuarioModel.findOne({ username });
 
@@ -209,8 +206,8 @@ const main = async () => {
         });
     });
 
-    app.post('/productos', isAuthenticated, async (req, res) => {
-        const { username } = req.session;
+    app.post('/productos', verifyToken, async (req, res) => {
+        const { username } = req.secret;
         const { nombre, precio, imagen, cantidad } = req.body;
 
         let err = 'Los siguientes campos son requeridos:'
