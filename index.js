@@ -4,6 +4,7 @@ const express = require('express')
 const session = require('express-session')
 const { StatusCodes } = require('http-status-codes')
 const MongoStore = require('connect-mongo')
+const bcrypt = require('bcrypt');
 
 
 const conectDB = async () => {
@@ -126,9 +127,12 @@ const main = async () => {
             })
         }
 
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds)
+
         const nuevoUsuario = new UsuarioModel({
             username,
-            password,
+            password: hashedPassword,
             name,
             productos: []
         })
@@ -151,13 +155,16 @@ const main = async () => {
                 throw new Error('La contraseña es requerida')
             }
     
-            user = await UsuarioModel.findOne({ username });
+            user = await UsuarioModel.findOne({ username });            
     
             if (!user?.username) {
                 throw new Error('El usuario no esta registrado');
             }
     
-            if (password !== user.password) {
+            const hashedPassword = user.password;            
+            const isCorrectPassword = await bcrypt.compare(password, hashedPassword)
+
+            if (!isCorrectPassword) {
                 throw new Error('El nombre de usuario o contraseña es incorrecta');
             }
 
