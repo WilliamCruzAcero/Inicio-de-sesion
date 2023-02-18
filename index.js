@@ -4,6 +4,17 @@ const express = require('express')
 const { StatusCodes } = require('http-status-codes')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const path = require('path')
+
+class WebError extends Error {
+    constructor (
+        message,
+        status
+    ) {
+        super(message)
+        this.status = status
+    }
+}
 
 
 const conectDB = async () => {
@@ -38,13 +49,13 @@ const getUserModel = () => {
 
 function verificarCampoRequerido(valor, mensaje) {
     if (!valor) {
-        throw new Error()
+        throw new WebError(mensaje, StatusCodes.BAD_REQUEST)
     }
 }
 const secret = 'my_secret_too_secret';
 
 function verifyToken(req, res, next) {
-    const token = req.headers.authorization;
+    const token = req.headers.authorization ?? req.query.token;
     
 
     if (!token) {
@@ -70,7 +81,9 @@ const main = async () => {
     const UsuarioModel = getUserModel();
     app.use(express.urlencoded({ extended: true}));
     app.use(express.json())
-
+    
+    app.use('/javascript', express.static(path.join(__dirname, 'public', 'javascript')))
+    
     app.set('views', './views');
     app.set('view engine', 'ejs');
 
@@ -138,38 +151,37 @@ const main = async () => {
 
         res.render('mensaje', { mensaje: `Usuario ${username} registrado con exito` })
     });
-
+    
     app.post('/login', async (req, res) => {
         const { username, password } = req.body;
         let user;
 
         try {
             if (!username) {
-                throw new Error('El nombre de usuario es requerido')
+                throw new WebError('El nombre de usuario es requerido', StatusCodes.BAD_REQUEST)
             }
 
             if (!password) {
-                throw new Error('La contraseña es requerida')
+                throw new WebError('La contraseña es requerida', StatusCodes.BAD_REQUEST)
             }
 
             user = await UsuarioModel.findOne({ username });
 
             if (!user?.username) {
-                throw new Error('El usuario no esta registrado');
+                throw new WebError('El usuario no esta registrado', StatusCodes.UNAUTHORIZED);
             }
 
             const hashedPassword = user.password;
             const isCorrectPassword = await bcrypt.compare(password, hashedPassword)
 
             if (!isCorrectPassword) {
-                throw new Error('El nombre de usuario o contraseña es incorrecta');
+                throw new WebError('El nombre de usuario o contraseña es incorrecta',  StatusCodes.UNAUTHORIZED);
             }
 
         } catch (error) {
-            return res.render('error', {
-                mensaje: error.message,
-                redirigir: '/'
-            })
+            return res.status(error.status).json({
+                error: error.message
+            })           
         }
 
         const tokenBody = {
@@ -214,12 +226,9 @@ const main = async () => {
         const camposFaltantes = []
 
         try {
-            verificarCampoRequerido(nombre);
+            verificarCampoRequerido(nombre, `${err} Nombre`);
         } catch (error) {
-            return res.render('error', {
-                mensaje: `${err} Nombre`,
-                redirigir: '/productos'
-            })
+            return res.status(error.status).json({error: error.message})
         }
 
         const user = await UsuarioModel.findOne({ username });
@@ -257,10 +266,7 @@ const main = async () => {
 
             if (camposFaltantes.length) {
                 err = err + ' ' + camposFaltantes.join(', ');
-                return res.render('error', {
-                    mensaje: err,
-                    redirigir: '/productos'
-                })
+                return res.status(StatusCodes.BAD_REQUEST).json({error: err})
             }
 
             user.productos.push({
@@ -273,7 +279,7 @@ const main = async () => {
 
         await user.save()
 
-        res.redirect('/productos')
+        res.json({});
 
     })
 
