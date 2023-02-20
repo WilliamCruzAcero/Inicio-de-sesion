@@ -1,47 +1,52 @@
-const registraUsuarioButton = document.getElementById('RegistrarUsuario');
-registraUsuarioButton.addEventListener("click", crearProducto);
 
-async function registraUsuario() {
+const registrarUsuario = document.getElementById('registrarUsuario');
+registrarUsuario.addEventListener("click", guardarUsuario)
 
-    
-    const url = "http://localhost:8080/usuario";       
-    const nameUsuarioElement = document.getElementById('nameUsuario');
-    const name= nameUsuarioElement.value;    
-    
-    const usernameUsuariolement = document.getElementById('usernameUsuario');
-    const username = usernameUsuariolement.value; 
 
-    const passwordUsuarioElement = document.getElementById('passwordUsuario');
-    const password = passwordUsuarioElement.value;    
-        
-    const token = localStorage.getItem('token')
-    const data = { name, username, password   }
-    
-    const fetchConfig = {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers:{
-            'Content-Type': 'application/json',
-            'Authorization': token
+async function guardarUsuario() {
+    const url = "http://localhost:8080/user";
+    const datoIngresado = {
+        name: document.getElementById('nameUsuario').value,
+        username: document.getElementById('usernameUsuario').value,
+        password: document.getElementById('passwordUsuario').value
+    }
+
+    const objetoUsuario = datoIngresado;
+               
+        const fetchConfig = {
+            method: 'POST',
+            body: JSON.stringify(objetoUsuario),
+            headers:{
+                'Content-Type': 'application/json',
+                
+            }
         }
-    }
+    
+        const response = await fetch(url, fetchConfig)
+    
+        let body;
+        
+        switch (response.status) {
+            case 401:
+            case 403:
+                window.location = '/';
+                break;
+            case 200:
+                body= await response.json();
+                alert(body.message);
+                window.location = '/';
+                break;
+            default:
+                body = await response.json();
+                alert(body.error);
+                location.reload();
+                break;
+        }
+}
 
-    const response = await fetch(url, fetchConfig)
+document.getElementById("btn-inicio-sesion").addEventListener("click", irlogin)
 
-    let body;
-    switch (response.status) {
-        case 401:
-        case 403:
-            localStorage.removeItem("token")
-            window.location = '/'
-            break;
-        case 200:
-            location.reload();
-            break;
-        default:
-            body = await response.json();
-            alert(body.error);
-            location.reload();
-            break;
-    }
+function irlogin() {
+    window.location = "/"
+
 }

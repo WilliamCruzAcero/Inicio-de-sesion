@@ -98,43 +98,38 @@ const main = async () => {
     app.post('/user', async (req, res) => {
 
         const { username, password, name } = req.body;
-
+      
         if (!username) {
-            return res.render('error', {
-                mensaje: 'El nombre de usuario es requerido',
-                redirigir: '/registrarUsuario'
-            })
+            return res.status(StatusCodes.BAD_REQUEST).json( {
+                error: `El nombre de usuario es requerido`
+            });
         }
 
         var isEmailRegExp = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
         if (!isEmailRegExp.test(username)) {
-            return res.render('error', {
-                mensaje: 'El nombre de usuario debe ser un correo electrónico',
-                redirigir: '/registrarUsuario'
-            })
+            return res.status(StatusCodes.BAD_REQUEST).json( {
+                error: 'El nombre de usuario debe ser un correo electrónico'
+            });
         }
 
         if (!password) {
-            return res.render('error', {
-                mensaje: 'La contraseña es requerida',
-                redirigir: '/registrarUsuario'
-            })
+            return res.status(StatusCodes.BAD_REQUEST).json( {
+                error: 'La contraseña es requerida'
+            });
         }
 
         if (!name) {
-            return res.render('error', {
-                mensaje: 'El nombre es requerido',
-                redirigir: '/registrarUsuario'
-            })
+            return res.status(StatusCodes.BAD_REQUEST).json( {
+                error: 'El nombre es requerido'
+            });
         }
 
         const usuarioExistente = await UsuarioModel.findOne({ username });
 
         if (usuarioExistente?.username) {
-            return res.render('error', {
-                mensaje: 'El nombre de usuario no está disponible',
-                redirigir: '/registrarUsuario'
-            })
+            return res.status(StatusCodes.BAD_REQUEST).json( {
+                error: 'El nombre de usuario no está disponible'
+            });
         }
 
         const saltRounds = 10;
@@ -149,7 +144,9 @@ const main = async () => {
 
         await nuevoUsuario.save();
 
-        res.render('mensaje', { mensaje: `Usuario ${username} registrado con exito` })
+        res.json({
+            message: `Usuario ${username} registrado con exito` 
+        })
     });
     
     app.post('/login', async (req, res) => {

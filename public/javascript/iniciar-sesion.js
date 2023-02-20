@@ -35,11 +35,11 @@ async function obtenerToken() {
     }
 }
 
-const irRegistroButton = document.querySelector("button");
-irRegistroButton.addEventListener("click", irRegistro())
+document.getElementById("btn").addEventListener("click", irRegistro )
 
-function irRegistro() {
-    preventDefault()
-    window.location = '/user';
-}
 
+
+  function irRegistro() {
+    window.location = "/registrarUsuario"
+
+  }
